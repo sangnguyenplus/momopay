@@ -1,0 +1,10 @@
+{
+    "name": "Momo Payment Gateway",
+    "namespace": "TTSoft\\MomoPay\\",
+    "provider": "TTSoft\\MomoPay\\Providers\\MomoPayServiceProvider",
+    "author": "Tuoitre Soft",
+    "url": "https://tuoitresoft.com/",
+    "version": "1.0",
+    "description": "Momo payment gateway integration",
+    "require": []
+}
