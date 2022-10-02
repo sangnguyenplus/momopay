@@ -6,7 +6,7 @@ use Botble\Base\Http\Responses\BaseHttpResponse;
 use Botble\Payment\Enums\PaymentStatusEnum;
 use Botble\Payment\Models\Payment;
 use Botble\Payment\Repositories\Eloquent\PaymentRepository;
-use Botble\Payment\Services\Traits\PaymentTrait;
+use Botble\Payment\Supports\PaymentHelper;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -16,12 +16,15 @@ use TTSoft\MomoPay\Services\Gateways\MomoPaymentService;
 
 class MomoPaymentController extends Controller
 {
-    use PaymentTrait;
-
     /**
      * @var MomoPaymentService
      */
     protected $momoPaymentService;
+
+    /**
+     * @var PaymentRepository
+     */
+    protected $paymentRepository;
 
     /**
      * PaymentController constructor.
@@ -44,7 +47,8 @@ class MomoPaymentController extends Controller
             $responsePay = $this->momoPaymentService->getPaymentStatus($request);
             $orderId = json_decode($responsePay->extraData)->order_id;
             $transId = $responsePay->transId;
-            if (!$transId || $transId === "") {
+
+            if (!$transId) {
                 Log::error('checkStatusPaymentMomo: transaction id momo service not found');
                 abort(500, 'Transaction id momo service not found');
             }
@@ -53,15 +57,15 @@ class MomoPaymentController extends Controller
             if ($checkTransaction) {
                 abort(500, 'Transaction exsits in system');
             }
+
             if ($responsePay->errorCode == 0) {
-                $this->storeLocalPayment([
+                PaymentHelper::storeLocalPayment([
                     'amount'          => $responsePay->amount,
                     'charge_id'       => $transId,
                     'currency'        => 'VND',
                     'payment_channel' => MOMOPAY_PAYMENT_METHOD_NAME,
                     'status'          => PaymentStatusEnum::COMPLETED,
-                    'customer_id'     => auth('customer')->check() ? auth('customer')->user()
-                        ->getAuthIdentifier() : null,
+                    'customer_id'     => auth('customer')->check() ? auth('customer')->id() : null,
                     'payment_type'    => $responsePay->payType,
                     'order_id'        => $orderId,
                 ]);
@@ -72,14 +76,13 @@ class MomoPaymentController extends Controller
                     ->setNextUrl(route('public.checkout.success', session('tracked_start_checkout')))
                     ->setMessage(__('Checkout successfully!'));
             } else {
-                $this->storeLocalPayment([
+                PaymentHelper::storeLocalPayment([
                     'amount'          => $responsePay->amount,
                     'charge_id'       => $transId,
                     'currency'        => 'VND',
                     'payment_channel' => MOMOPAY_PAYMENT_METHOD_NAME,
                     'status'          => PaymentStatusEnum::FAILED,
-                    'customer_id'     => auth('customer')->check() ? auth('customer')->user()
-                        ->getAuthIdentifier() : null,
+                    'customer_id'     => auth('customer')->check() ? auth('customer')->id() : null,
                     'payment_type'    => $responsePay->payType,
                     'order_id'        => $orderId,
                 ]);
@@ -93,7 +96,7 @@ class MomoPaymentController extends Controller
             }
         } catch (Exception $e) {
             Log::error('checkStatusPaymentMomo:' . $e->getMessage());
-            abort(500);
+            report($e);
         }
     }
 }

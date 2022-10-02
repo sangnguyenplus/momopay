@@ -17,7 +17,7 @@ class MomoPaymentService extends MomoPaymentAbstract
      *
      * @param Request $request
      *
-     * @return mixed
+     * @return false|string
      * @throws Exception
      */
     public function makePayment(Request $request)
@@ -31,6 +31,7 @@ class MomoPaymentService extends MomoPaymentAbstract
                 'requestId' => $request->get('token'),
                 'extraData' => '{"order_id":' . $request->get('order_id') . '}',
             ]);
+
             if ($this->gateway->isRedirect($response)) {
                 return $this->gateway->getRedirectUrl($response);
             }
@@ -40,7 +41,8 @@ class MomoPaymentService extends MomoPaymentAbstract
             return false;
         } catch (Exception $e) {
             Log::error('MomoPaymentService - makePayment: ' . $e->getMessage());
-            $this->setErrorMessage($response->localMessage);
+
+            $this->setErrorMessage($e->getMessage());
 
             return false;
         }

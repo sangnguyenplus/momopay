@@ -1,6 +1,7 @@
 <?php
 
 use Botble\Ecommerce\Models\Currency;
+use Botble\Ecommerce\Repositories\Interfaces\CurrencyInterface;
 
 if (!defined('MOMOPAY_PAYMENT_METHOD_NAME')) {
     define('MOMOPAY_PAYMENT_METHOD_NAME', 'momopay');
@@ -18,16 +19,17 @@ if (!function_exists('get_current_VND_exchange_rate')) {
     /**
      * @return int|null
      */
-    function get_current_VND_exchange_rate()
+    function get_current_VND_exchange_rate(): ?int
     {
+        $exchangeRate = 1;
         $currencies = get_all_currencies();
         foreach ($currencies as $currency) {
             if ($currency->title == 'VND') {
-                $exchange_rate = $currency->exchange_rate;
+                $exchangeRate = $currency->exchange_rate;
             }
         }
 
-        return (int)$exchange_rate ?? 23203;
+        return (int)$exchangeRate ?? 23203;
     }
 }
 
@@ -39,7 +41,7 @@ if (!function_exists('get_custom_current_exchange_rate')) {
     {
         if (!$currency) {
             $currency = get_application_currency();
-        } elseif ($currency != null && !($currency instanceof Currency)) {
+        } elseif (!($currency instanceof Currency)) {
             $currency = app(CurrencyInterface::class)->getFirstBy(['ec_currencies.id' => $currency]);
         }
 
@@ -53,9 +55,10 @@ if (!function_exists('get_custom_current_exchange_rate')) {
 
 if (!function_exists('convert_amount_to_VND')) {
     /**
+     * @param float $amount
      * @return int|null
      */
-    function convert_amount_to_VND($amount)
+    function convert_amount_to_VND($amount): ?int
     {
         return (int)(($amount / get_custom_current_exchange_rate()) * get_current_VND_exchange_rate());
     }

@@ -64,7 +64,7 @@ abstract class MomoPaymentAbstract implements ProduceServiceInterface
      *
      * @param int $orderId
      *
-     * @return mixed
+     * @return false|string
      */
     public function hashOrderId($orderId)
     {
@@ -80,8 +80,7 @@ abstract class MomoPaymentAbstract implements ProduceServiceInterface
     /**
      * Execute main service
      *
-     * @param $orderId
-     *
+     * @param $hashOrderId
      * @return mixed
      */
     public function deHashOrderId($hashOrderId)
@@ -99,7 +98,7 @@ abstract class MomoPaymentAbstract implements ProduceServiceInterface
      * Get payment status
      *
      * @param Request $request
-     * @return mixed Object payment details or false
+     * @return array|false Object payment details or false
      */
     public function getPaymentStatus(Request $request)
     {

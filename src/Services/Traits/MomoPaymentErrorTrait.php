@@ -4,7 +4,6 @@ namespace TTSoft\MomoPay\Services\Traits;
 
 use Exception;
 use Log;
-use Stripe\Exception\ApiErrorException;
 
 trait MomoPaymentErrorTrait
 {
@@ -14,9 +13,9 @@ trait MomoPaymentErrorTrait
     protected $errorMessage = null;
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getErrorMessage()
+    public function getErrorMessage(): ?string
     {
         return $this->errorMessage;
     }
@@ -33,22 +32,11 @@ trait MomoPaymentErrorTrait
      * Set error message and logging that error
      *
      * @param Exception $exception
-     * @param integer $case
      */
     protected function setErrorMessageAndLogging($exception)
     {
         try {
-            if (!$exception instanceof ApiErrorException) {
-                $this->errorMessage = $exception->getMessage();
-            } else {
-                $body = $exception->getJsonBody();
-                $error = $body['error'];
-                if (!empty($err['message'])) {
-                    $this->errorMessage = $error['message'];
-                } else {
-                    $this->errorMessage = $exception->getMessage();
-                }
-            }
+            $this->errorMessage = $exception->getMessage();
 
             Log::error('Failed to make a payment charge.');
         } catch (Exception $exception) {

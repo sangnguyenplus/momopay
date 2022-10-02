@@ -4,7 +4,6 @@ namespace TTSoft\MomoPay\Providers;
 
 use Botble\Base\Supports\Helper;
 use Botble\Base\Traits\LoadAndPublishDataTrait;
-use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\ServiceProvider;
 
 class MomoPayServiceProvider extends ServiceProvider
@@ -16,9 +15,6 @@ class MomoPayServiceProvider extends ServiceProvider
         Helper::autoload(__DIR__ . '/../../helpers');
     }
 
-    /**
-     * @throws FileNotFoundException
-     */
     public function boot()
     {
         if (is_plugin_active('payment')) {

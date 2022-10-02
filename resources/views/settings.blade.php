@@ -1,4 +1,5 @@
 @php $momopayStatus = get_payment_setting('status', MOMOPAY_PAYMENT_METHOD_NAME); @endphp
+
 <table class="table payment-method-item">
     <tbody>
     <tr class="border-pay-row">

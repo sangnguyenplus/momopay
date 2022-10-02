@@ -19,6 +19,21 @@ class MomoPaymentApi
     ];
 
     /**
+     * @var string
+     */
+    protected $secretKey;
+
+    /**
+     * @var string
+     */
+    protected $partnerCode;
+
+    /**
+     * @var string
+     */
+    protected $accessKey;
+
+    /**
      * Init default parameter
      *
      * @return void
@@ -36,11 +51,13 @@ class MomoPaymentApi
      * @param array $data
      *
      * @return array
+     * @throws Exception
      */
-    public function purchase($data)
+    public function purchase(array $data): array
     {
         $data['requestType'] = 'captureMoMoWallet';
         $data['orderInfo'] = '';
+
         $data = $this->getDefaultParameter($data);
 
         $data['signature'] = $this->getPurchaseSignature($data);
@@ -56,7 +73,7 @@ class MomoPaymentApi
      *
      * @return mixed
      */
-    private function getDefaultParameter($data)
+    protected function getDefaultParameter($data)
     {
         foreach ($this->defaultParameter as $key) {
             if ($this->$key) {
@@ -74,7 +91,7 @@ class MomoPaymentApi
      *
      * @return string
      */
-    private function getPurchaseSignature($data)
+    protected function getPurchaseSignature($data): string
     {
         $string = 'partnerCode=' . $this->partnerCode .
             '&accessKey=' . $this->accessKey .
@@ -94,10 +111,10 @@ class MomoPaymentApi
      *
      * @param array $data
      *
-     * @return mixed
+     * @return false|string
      * @throws Exception
      */
-    private static function requestApi($data)
+    private static function requestApi(array $data)
     {
         try {
             $testMode = $data['testMode'] ?? false;
@@ -123,9 +140,9 @@ class MomoPaymentApi
     /**
      * Get momo api domain
      *
-     * @return string
+     * @return string|null
      */
-    private static function getDomainApi()
+    private static function getDomainApi(): ?string
     {
         return config('plugins.momopay.general.domain_api_sandbox');
     }
@@ -141,8 +158,9 @@ class MomoPaymentApi
      * @param Request $request
      *
      * @return array
+     * @throws Exception
      */
-    public function getPaymentStatus($request)
+    public function getPaymentStatus(Request $request): array
     {
         $data = [
             'requestType' => 'transactionStatus',
@@ -165,7 +183,7 @@ class MomoPaymentApi
      *
      * @return string
      */
-    private function getPaymentStatusSignature($data)
+    protected function getPaymentStatusSignature(array $data): string
     {
         $string = 'partnerCode=' . $this->partnerCode .
             '&accessKey=' . $this->accessKey .
@@ -183,7 +201,7 @@ class MomoPaymentApi
      *
      * @return boolean
      */
-    public function isRedirect($response)
+    public function isRedirect($response): bool
     {
         return $response->errorCode == 0 && $this->checkSignature($response);
     }
@@ -195,7 +213,7 @@ class MomoPaymentApi
      *
      * @return boolean
      */
-    private function checkSignature($data)
+    protected function checkSignature($data): bool
     {
         $string = 'requestId=' . $data->requestId .
             '&orderId=' . $data->orderId .
@@ -213,9 +231,9 @@ class MomoPaymentApi
      *
      * @param $response
      *
-     * @return string
+     * @return string|null
      */
-    public function getRedirectUrl($response)
+    public function getRedirectUrl($response): ?string
     {
         return $response->payUrl;
     }

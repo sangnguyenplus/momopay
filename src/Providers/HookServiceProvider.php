@@ -2,9 +2,9 @@
 
 namespace TTSoft\MomoPay\Providers;
 
-use Botble\Ecommerce\Repositories\Interfaces\OrderAddressInterface;
 use Botble\Payment\Enums\PaymentMethodEnum;
 use Html;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use Throwable;
@@ -52,11 +52,11 @@ class HookServiceProvider extends ServiceProvider
     }
 
     /**
-     * @param string $settings
+     * @param string|null $settings
      * @return string
      * @throws Throwable
      */
-    public function addPaymentSettings($settings)
+    public function addPaymentSettings(?string $settings): string
     {
         return $settings . view('plugins/momopay::settings')->render();
     }
@@ -66,30 +66,29 @@ class HookServiceProvider extends ServiceProvider
      * @param array $data
      * @return string
      */
-    public function registerMomopayMethod($html, array $data)
+    public function registerMomopayMethod($html, array $data): string
     {
         return $html . view('plugins/momopay::methods', $data)->render();
     }
 
     /**
-     * @param Request $request
      * @param array $data
+     * @param Request $request
+     * @return array
+     * @throws BindingResolutionException
      */
-    public function checkoutWithMomopay(array $data, Request $request)
+    public function checkoutWithMomopay(array $data, Request $request): array
     {
         if ($request->input('payment_method') == MOMOPAY_PAYMENT_METHOD_NAME) {
-            $data = $this->app->make(MomoPaymentService::class)->execute($request);
+            $momoPaymentService = $this->app->make(MomoPaymentService::class);
 
-            if ($data === false) {
-                $message = $this->app->make(MomoPaymentService::class)->getErrorMessage();
-                abort(500, $message);
-            }
+            $checkoutUrl = $momoPaymentService->execute($request);
 
-            if ($data) {
-                header('Location: ' . $data);
-                exit;
+            if ($checkoutUrl) {
+                $data['checkoutUrl'] = $checkoutUrl;
             } else {
-                abort(500);
+                $data['error'] = true;
+                $data['message'] = $momoPaymentService->getErrorMessage();
             }
         }
 
