@@ -11,7 +11,6 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Log;
-use OrderHelper;
 use TTSoft\MomoPay\Services\Gateways\MomoPaymentService;
 
 class MomoPaymentController extends Controller
@@ -50,53 +49,51 @@ class MomoPaymentController extends Controller
 
             if (!$transId) {
                 Log::error('checkStatusPaymentMomo: transaction id momo service not found');
-                abort(500, 'Transaction id momo service not found');
-            }
-            $checkTransaction = $this->paymentRepository->getFirstBy(['charge_id' => $transId]);
-
-            if ($checkTransaction) {
-                abort(500, 'Transaction exsits in system');
-            }
-
-            if ($responsePay->errorCode == 0) {
-                PaymentHelper::storeLocalPayment([
-                    'amount'          => $responsePay->amount,
-                    'charge_id'       => $transId,
-                    'currency'        => 'VND',
-                    'payment_channel' => MOMOPAY_PAYMENT_METHOD_NAME,
-                    'status'          => PaymentStatusEnum::COMPLETED,
-                    'customer_id'     => auth('customer')->check() ? auth('customer')->id() : null,
-                    'payment_type'    => $responsePay->payType,
-                    'order_id'        => $orderId,
-                ]);
-
-                OrderHelper::processOrder($orderId, $transId);
-
-                return $response
-                    ->setNextUrl(route('public.checkout.success', session('tracked_start_checkout')))
-                    ->setMessage(__('Checkout successfully!'));
-            } else {
-                PaymentHelper::storeLocalPayment([
-                    'amount'          => $responsePay->amount,
-                    'charge_id'       => $transId,
-                    'currency'        => 'VND',
-                    'payment_channel' => MOMOPAY_PAYMENT_METHOD_NAME,
-                    'status'          => PaymentStatusEnum::FAILED,
-                    'customer_id'     => auth('customer')->check() ? auth('customer')->id() : null,
-                    'payment_type'    => $responsePay->payType,
-                    'order_id'        => $orderId,
-                ]);
-
-                OrderHelper::processOrder($orderId, $transId);
 
                 return $response
                     ->setError()
-                    ->setNextUrl(route('public.checkout.success', session('tracked_start_checkout')))
-                    ->setMessage($responsePay->localMessage);
+                    ->setNextUrl(PaymentHelper::getCancelURL())
+                    ->setMessage('Transaction id momo service not found');
             }
+
+            $checkTransaction = $this->paymentRepository->getFirstBy(['charge_id' => $transId]);
+
+            if ($checkTransaction) {
+                return $response
+                    ->setError()
+                    ->setNextUrl(PaymentHelper::getCancelURL())
+                    ->setMessage('Transaction exits in system');
+            }
+
+            if ($responsePay->errorCode == 0) {
+                do_action(PAYMENT_ACTION_PAYMENT_PROCESSED, [
+                    'amount'          => $responsePay->amount,
+                    'charge_id'       => $transId,
+                    'currency'        => 'VND',
+                    'order_id'        => (array)$orderId,
+                    'customer_id'     => auth('customer')->check() ? auth('customer')->id() : null,
+                    'customer_type'   => 'Botble\Ecommerce\Models\Customer',
+                    'payment_channel' => MOMOPAY_PAYMENT_METHOD_NAME,
+                    'status'          => PaymentStatusEnum::COMPLETED,
+                ]);
+
+                return $response
+                    ->setNextUrl(PaymentHelper::getRedirectURL())
+                    ->setMessage(__('Checkout successfully!'));
+            }
+
+            return $response
+                ->setError()
+                ->setNextUrl(PaymentHelper::getCancelURL())
+                ->setMessage($responsePay->localMessage ?: __('Payment failed!'));
+
         } catch (Exception $e) {
             Log::error('checkStatusPaymentMomo:' . $e->getMessage());
-            report($e);
+
+            return $response
+                ->setError()
+                ->setNextUrl(PaymentHelper::getCancelURL())
+                ->setMessage($e->getMessage() ?: __('Payment failed!'));
         }
     }
 }
