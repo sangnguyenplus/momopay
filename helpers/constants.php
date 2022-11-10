@@ -29,7 +29,7 @@ if (!function_exists('get_current_VND_exchange_rate')) {
             }
         }
 
-        return (int)$exchangeRate ?? 23203;
+        return (int)$exchangeRate ?: 24867;
     }
 }
 
